@@ -1,0 +1,72 @@
+@import url('https://fonts.googleapis.com/css2?family=Chivo:wght@400;600;700;800;900&family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+    margin: 0;
+    font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+@layer base {
+    :root {
+        --background: 0 0% 100%;
+        --foreground: 222 47% 11%;
+        --card: 0 0% 100%;
+        --card-foreground: 222 47% 11%;
+        --popover: 0 0% 100%;
+        --popover-foreground: 222 47% 11%;
+        --primary: 222 47% 11%;
+        --primary-foreground: 210 40% 98%;
+        --secondary: 210 40% 96%;
+        --secondary-foreground: 222 47% 11%;
+        --muted: 210 40% 96%;
+        --muted-foreground: 215 16% 47%;
+        --accent: 210 40% 96%;
+        --accent-foreground: 222 47% 11%;
+        --destructive: 0 72% 51%;
+        --destructive-foreground: 210 40% 98%;
+        --border: 214 32% 91%;
+        --input: 214 32% 91%;
+        --ring: 222 47% 11%;
+        --chart-1: 222 47% 11%;
+        --chart-2: 142 71% 45%;
+        --chart-3: 38 92% 50%;
+        --chart-4: 0 72% 51%;
+        --chart-5: 215 16% 47%;
+        --radius: 0.25rem;
+    }
+}
+
+@layer base {
+    * {
+        @apply border-border;
+    }
+    body {
+        @apply bg-background text-foreground;
+    }
+    h1, h2, h3, h4 {
+        font-family: 'Chivo', sans-serif;
+    }
+    .font-data {
+        font-family: 'JetBrains Mono', monospace;
+        font-variant-numeric: tabular-nums;
+    }
+}
+
+/* dense table */
+.ims-table th {
+    @apply text-[11px] font-bold uppercase tracking-wider text-slate-500 bg-slate-50 px-3 py-2 text-left border-b border-slate-200 whitespace-nowrap;
+}
+.ims-table td {
+    @apply px-3 py-2 text-[13px] border-b border-slate-100 whitespace-nowrap;
+}
+.ims-table tbody tr:hover {
+    @apply bg-slate-50;
+}
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+::-webkit-scrollbar-track { background: #f1f5f9; }

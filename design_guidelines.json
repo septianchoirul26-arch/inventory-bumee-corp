@@ -1,0 +1,121 @@
+{
+  "project_context": {
+    "theme": "Light theme primary (Archetype 4: Swiss & High-Contrast). Focused on extremely dense data tables, minimal decorative elements, and ultra-high legibility for administrators working long hours. Avoid dark mode unless user specifically toggles it, but light mode is default for spreadsheet-friendly apps.",
+    "tone": "Objective, Functional, Crisp, Authoritative.",
+    "forbidden": ["'Sales', 'Revenue' terminology", "Teal Green/Blue (#1B93A4)", "Space Grotesk font", "Heavy shadows", "Gradients", "Inter font for Headings", "Placeholder images"]
+  },
+  "typography": {
+    "strategy": "The 'Soft Utility' + 'Swiss' hybrid. Clean legibility for massive data grids, mono for financials.",
+    "fonts": {
+      "headings": "Chivo",
+      "body": "IBM Plex Sans",
+      "mono_data": "JetBrains Mono"
+    },
+    "hierarchy": {
+      "h1": "text-3xl font-black tracking-tight (Do not exceed 3xl for internal dashboards)",
+      "h2": "text-xl font-bold tracking-tight",
+      "h3": "text-lg font-semibold",
+      "body": "text-sm leading-relaxed",
+      "table_data": "text-[13px] font-mono leading-none tracking-tight",
+      "labels": "text-[11px] font-bold uppercase tracking-[0.1em]"
+    },
+    "installation": "Ensure fonts are imported via Google Fonts in index.css or index.html."
+  },
+  "colors": {
+    "strategy": "Monochrome base with sharp semantic highlights. Content > Container.",
+    "base": {
+      "background": "#FFFFFF",
+      "surface_1": "#F8FAFC",
+      "surface_2": "#F1F5F9",
+      "border": "#E2E8F0"
+    },
+    "text": {
+      "primary": "#0F172A",
+      "secondary": "#475569",
+      "tertiary": "#94A3B8"
+    },
+    "actions": {
+      "primary": "#0F172A",
+      "primary_hover": "#334155",
+      "secondary": "#FFFFFF",
+      "secondary_border": "#E2E8F0"
+    },
+    "semantic": {
+      "safe_green_text": "#15803D",
+      "safe_green_bg": "#DCFCE7",
+      "low_yellow_text": "#B45309",
+      "low_yellow_bg": "#FEF3C7",
+      "critical_red_text": "#B91C1C",
+      "critical_red_bg": "#FEE2E2"
+    },
+    "instructions_to_main_agent": "Update index.css CSS variables with these HSL values. Ensure semantic colors are mapped to Shadcn destructive, etc."
+  },
+  "grids_and_layouts": {
+    "strategy": "Mode B: High Density Grid. Utilize 100% of the screen. Avoid empty gutters. Sidebar navigation.",
+    "spacing_scale": "Extremely tight inside components (p-2, p-3), standard padding around main containers (p-6, p-8).",
+    "structure": {
+      "sidebar": "w-64 fixed left-0 top-0 h-screen border-r border-slate-200 bg-slate-50. Collapses to drawer on mobile.",
+      "topbar": "h-14 border-b border-slate-200 flex items-center px-6 bg-white sticky top-0 z-40.",
+      "main_content": "ml-64 p-6 min-h-screen bg-white"
+    },
+    "dashboard_bento": "grid-cols-1 md:grid-cols-4 gap-4. KPI cards span 1 column. Charts span 2-3 columns.",
+    "table_layout": "Full width, border-collapse. Scrollable x and y. Sticky headers."
+  },
+  "surfaces_and_micro_themes": {
+    "strategy": "Grid Borders (The 'Technical' Look). 1px sharp borders everywhere. 0px or 4px max border-radius.",
+    "cards": "Flat background (bg-white), 1px solid border (border-slate-200), NO box-shadow. Radius: rounded-sm (4px).",
+    "tables": "Row borders only (border-b border-slate-100). Hover state on rows: bg-slate-50. Headers: bg-slate-50 uppercase text-[11px].",
+    "badges": "Square or slightly rounded (rounded-sm), strong text/bg contrast for Safe/Low/Critical. No borders on badges."
+  },
+  "motion": {
+    "strategy": "Utilitarian & Snappy. Interactions must feel instant to avoid slowing down data entry.",
+    "hover": "Instant background shifts (duration-150 ease-in-out).",
+    "tables": "Hovering over a row should strictly highlight the row. Do not animate table cell contents.",
+    "modals": "Fade-in + subtle scale (duration-200).",
+    "progress_bars": "Smooth linear transitions for Stock Opname progress."
+  },
+  "component_instructions": {
+    "general": "Heavily use Shadcn components but strip out the default 'Vercel' look (reduce border radius, remove box-shadows).",
+    "tables": "MUST be dense. Reduce Shadcn default table cell padding from p-4 to px-3 py-2. Use text-sm for data, text-xs for headers.",
+    "buttons": "Square or mildly rounded (rounded-sm). Action buttons must be dense (h-8 or h-9).",
+    "forms": "Use Shadcn forms + React Hook Form. Inputs must have clear focus rings (ring-slate-900).",
+    "icons": "Use Phosphor Icons (@phosphor-icons/react) for a dense, highly legible dashboard aesthetic. Install via yarn add @phosphor-icons/react",
+    "charts": "Use Recharts (via Shadcn). Minimal grid lines, solid monochrome lines/bars for inventory movement. No gradients.",
+    "toast": "Use sonner for notifications. Position: top-right."
+  },
+  "specific_views": {
+    "stock_opname": "Requires a visual workflow (Draft -> In Progress -> Completed -> Finalized). Add a sticky bottom bar or top banner with the progress bar and save buttons.",
+    "bulk_import": "Requires a preview table before committing. Highlight invalid rows in light red.",
+    "products_sku": "SKU codes MUST be monospaced. Purchase price history shown in a nested table or slide-out sheet."
+  },
+  "accessibility": {
+    "contrast": "Ensure text colors pass APCA over their respective backgrounds, especially semantic badges.",
+    "testing": "All interactive elements (buttons, table rows, inputs) MUST have data-testid attributes (e.g., data-testid='stock-in-submit', data-testid='sku-search-input').",
+    "keyboard": "Tables and bulk inputs must support tab-navigation efficiently."
+  },
+  "media_and_images": {
+    "strategy": "Internal tools don't need decorative images. Only use a clean avatar for the logged-in user profile, and potentially a generic corporate logo in the sidebar if needed. No placeholders.",
+    "image_urls": {
+      "user_avatar": {
+        "url": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=150&h=150",
+        "description": "Professional minimal headshot for user profile dropdown",
+        "category": "header_profile"
+      }
+    }
+  },
+  "universal_guidelines_for_main_agent": [
+    "You tend to converge toward generic outputs. Avoid this: make creative, distinctive frontends that surprise and delight.",
+    "Dark colors look good when used independently without gradients. DO NOT use dark colors as gradients.",
+    "Don't make generic centered layouts. Left-align dense content.",
+    "Create depth through border hierarchy rather than shadows for this specific internal app.",
+    "You MUST NOT apply universal transition. Eg: transition: all. Always add transitions for specific interactive elements.",
+    "You MUST NOT center align the app container. Do not add .App { text-align: center; }.",
+    "Always use dense, sharp-edged button styles relevant to the app style.",
+    "NEVER use AI assistant Emoji characters like 🤖🧠💭💡🔮🎯 for icons.",
+    "Use Phosphor icons. Ensure crisp line weights.",
+    "Prioritize using pre-existing components from src/components/ui when applicable.",
+    "Use `sonner` for toasts.",
+    "All numbers/currency (Rp) MUST be right-aligned in tables.",
+    "Date format MUST be DD MMM YYYY."
+  ]
+}

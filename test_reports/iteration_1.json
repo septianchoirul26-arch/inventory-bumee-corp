@@ -1,0 +1,96 @@
+{
+  "summary": "Tested the public deployment end to end. Core inventory acceptance passed: historical price snapshots remained immutable, ledger stock reconciled through opname, current valuation used current price, all four reports generated, admin/staff RBAC worked, and major UI workflows completed. Backend pytest: 15/20 passed. Five confirmed failures are security/input-integrity defects. Production CI build also fails on ESLint warnings.",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "/api/auth/login",
+        "issue": "Login returns JWT only in JSON and does not set an application access_token HttpOnly cookie; required auth playbook control is missing.",
+        "priority": "HIGH"
+      },
+      {
+        "endpoint": "/api/auth/login",
+        "issue": "No brute-force lockout/rate limit: six consecutive invalid attempts all returned 401; the sixth should be locked out (429).",
+        "priority": "HIGH"
+      },
+      {
+        "endpoint": "CORS middleware / all /api endpoints",
+        "issue": "CORS responds Access-Control-Allow-Origin: * and omits Access-Control-Allow-Credentials; required explicit origins with credentials are not configured.",
+        "priority": "HIGH"
+      },
+      {
+        "endpoint": "/api/opname/{id}/counts",
+        "issue": "Accepts physical_stock=-1 with HTTP 200. A negative count can later produce invalid negative inventory when finalized.",
+        "priority": "HIGH"
+      },
+      {
+        "endpoint": "/api/products/{id}/price",
+        "issue": "Accepts price=-1 with HTTP 200 and can make current purchase price/inventory value negative.",
+        "priority": "HIGH"
+      }
+    ],
+    "minor": [
+      {
+        "endpoint": "/api/opname",
+        "issue": "Requested Draft -> In Progress -> Completed -> Finalized workflow is not implemented; sessions are created directly as in_progress and only transition to finalized."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "ProductDetailSheet / Radix dialogs",
+        "issue": "Opening product detail emits accessibility errors because DialogContent initially has no DialogTitle; multiple dialogs also warn about missing descriptions/aria-describedby.",
+        "selector": "[data-testid='product-detail-sheet']",
+        "priority": "MEDIUM"
+      }
+    ],
+    "integration_issues": [
+      {
+        "flow": "Production build",
+        "issue": "CI=true yarn build fails because react-hooks/exhaustive-deps warnings are treated as errors in ProductDetailSheet.jsx, Dashboard.jsx, and Products.jsx.",
+        "affected_selectors": []
+      }
+    ],
+    "design_issues": [
+      {
+        "screen": "Dashboard, Stock In, Stock Opname, History, Reports, price dialogs",
+        "issues": [
+          "Native browser date inputs render locale-dependent dates such as 07/20/2026 instead of the required DD MMM YYYY and do not provide a consistent application calendar experience."
+        ]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "Add secure HttpOnly access-token cookies, explicit credentialed CORS origins, and brute-force lockout after five failed logins; keep Bearer support only if intentionally required.",
+    "Add Pydantic/domain constraints so purchase prices and physical counts cannot be negative; also validate minimum stock and settings ranges.",
+    "Implement the full Draft/In Progress/Completed/Finalized opname state machine or align the requirement explicitly.",
+    "Fix the three React hook dependency warnings so the production CI build passes.",
+    "Provide persistent accessible titles/descriptions for sheet/dialog content.",
+    "Use a consistent date component/display that honors DD MMM YYYY and Asia/Jakarta semantics."
+  ],
+  "critical_code_review_comments": [
+    "server.py is about 1,350 lines and should be split into focused auth, products, stock-in, opname, report, and settings routers/services.",
+    "Stock-in and opname finalization perform multiple Mongo writes without a transaction. Mid-operation failure can leave a transaction header, items, movements, or finalized status partially committed.",
+    "insert_movement calculates balance_after with a separate aggregate read followed by insert, creating race conditions under concurrent stock operations; current stock SUM remains correct but stored balances can be wrong.",
+    "finalize_opname checks status and inserts adjustments non-atomically, so concurrent finalize requests can duplicate adjustment movements.",
+    "Dashboard uses UTC date for 'today' instead of Asia/Jakarta, risking incorrect daily KPIs around the timezone boundary.",
+    "Several frontend API loads lack explicit error state handling and can remain on Loading or fail silently."
+  ],
+  "updated_files": [
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/iteration_1.json"
+  ],
+  "success_rate": {
+    "backend": "75% (15/20 pytest cases passed)",
+    "frontend": "90% (major functional workflows passed; CI production build failed and accessibility/date-format issues remain)"
+  },
+  "seed_data_creation": "Created isolated TEST_QA_* products, stock-in movements, finalized/in-progress opname sessions, and TEST_UI_1787034168 for E2E validation. Test products were deactivated. Temporary Staff users were deleted; the admin was not modified. Opname/history records remain because no delete endpoint exists.",
+  "should_call_test_agent_after_fix": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Re-run /app/backend/tests/backend_test.py after auth and validation fixes. Core acceptance and UI flows passed against the public URL. The inactive E2E SKU TEST_UI_1787034168 has stock 4, current price Rp2,500, historical stock-in prices Rp2,000/Rp2,500, and a finalized +1 opname adjustment. Verify CI=true yarn build after hook fixes.",
+  "rca_of_the_issue": "Auth controls are absent in implementation: login returns only a body token, CORSMiddleware is hardcoded to wildcard/no credentials, and no failure counter exists. OpnameCountItem and PriceUpdate use unconstrained numeric fields, so negative values reach Mongo unchanged. The production build failure is caused by suppressed React hook dependency warnings that CI elevates to errors. Opname workflow models only in_progress/finalized rather than the four required states."
+}
