@@ -13,7 +13,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
-import { Plus, UploadSimple, MagnifyingGlass, Package, CheckCircle, Warning, WarningCircle, CaretUp, CaretDown } from "@phosphor-icons/react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Plus, UploadSimple, MagnifyingGlass, Package, CheckCircle, Warning, WarningCircle, CaretUp, CaretDown, DownloadSimple, Trash } from "@phosphor-icons/react";
 import { toast } from "sonner";
 
 export default function Products() {
@@ -35,6 +36,9 @@ export default function Products() {
   const [addOpen, setAddOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [deactivateTarget, setDeactivateTarget] = useState(null);
+  const [selected, setSelected] = useState([]);
+  const [bulkDelOpen, setBulkDelOpen] = useState(false);
+  const toggleSel = (id) => setSelected((s) => s.includes(id) ? s.filter((x) => x !== id) : [...s, id]);
 
   const loadMeta = useCallback(async () => {
     const [s, f] = await Promise.all([api.get("/products/summary"), api.get("/products/filters")]);
@@ -59,10 +63,15 @@ export default function Products() {
     </th>
   );
   const refresh = () => { load(); loadMeta(); };
+  const allOnPage = data?.items.map((i) => i.id) || [];
+  const allSelected = allOnPage.length > 0 && allOnPage.every((id) => selected.includes(id));
+  const toggleAll = () => setSelected((s) => allSelected ? s.filter((id) => !allOnPage.includes(id)) : [...new Set([...s, ...allOnPage])]);
+  const doBulkDelete = async () => { await api.post("/products/bulk-delete", { ids: selected }); toast.success(`${selected.length} produk dihapus`); setSelected([]); setBulkDelOpen(false); refresh(); };
 
   return (
     <div>
       <PageHeader title="Produk / SKU" subtitle="Master data seluruh item inventory">
+        {isAdmin && selected.length > 0 && <Button variant="outline" className="h-9 rounded-sm gap-2 text-[#B91C1C] border-[#FEE2E2] hover:bg-[#FEE2E2]" onClick={() => setBulkDelOpen(true)} data-testid="bulk-delete-btn"><Trash size={16} /> Hapus ({selected.length})</Button>}
         {isAdmin && <Button data-testid="import-csv-btn" variant="outline" className="h-9 rounded-sm gap-2" onClick={() => setImportOpen(true)}><UploadSimple size={16} /> Impor CSV/Excel</Button>}
         {isAdmin && <Button data-testid="add-sku-btn" className="h-9 rounded-sm gap-2" onClick={() => setAddOpen(true)}><Plus size={16} /> Tambah SKU</Button>}
       </PageHeader>
@@ -88,15 +97,17 @@ export default function Products() {
       <div className="border border-slate-200 rounded-sm overflow-auto">
         <table className="ims-table w-full">
           <thead><tr>
+            {isAdmin && <th className="w-8"><Checkbox checked={allSelected} onCheckedChange={toggleAll} data-testid="select-all" /></th>}
             <SortHead label="SKU" k="sku" /><SortHead label="Nama" k="name" /><th>Kategori</th>
             <SortHead label="Stok" k="stock" right /><th className="text-right">Min</th>
             <SortHead label="Harga Beli" k="price" right /><th>Status</th>{isAdmin && <th></th>}
           </tr></thead>
           <tbody>
-            {loading && <tr><td colSpan={8}><Loading /></td></tr>}
-            {!loading && data?.items.length === 0 && <tr><td colSpan={8}><EmptyState title="Tidak ada produk" message="Sesuaikan filter atau tambah SKU baru." /></td></tr>}
+            {loading && <tr><td colSpan={isAdmin ? 9 : 8}><Loading /></td></tr>}
+            {!loading && data?.items.length === 0 && <tr><td colSpan={isAdmin ? 9 : 8}><EmptyState title="Tidak ada produk" message="Sesuaikan filter atau tambah SKU baru." /></td></tr>}
             {!loading && data?.items.map((p) => (
               <tr key={p.id} className="cursor-pointer" onClick={() => setOpenId(p.id)} data-testid={`product-row-${p.sku}`}>
+                {isAdmin && <td onClick={(e) => e.stopPropagation()}><Checkbox checked={selected.includes(p.id)} onCheckedChange={() => toggleSel(p.id)} data-testid={`select-${p.sku}`} /></td>}
                 <td className="font-data font-semibold">{p.sku}{!p.is_active && <span className="ml-2 text-[10px] uppercase text-slate-400">(nonaktif)</span>}</td>
                 <td className="max-w-[240px] truncate">{p.name}</td>
                 <td className="text-slate-600">{p.type || "—"}</td>
@@ -126,6 +137,7 @@ export default function Products() {
       <Dialog open={importOpen} onOpenChange={(o) => !o && setImportOpen(false)}>
         <DialogContent className="max-w-3xl" data-testid="import-products-dialog">
           <DialogHeader><DialogTitle>Impor Produk</DialogTitle><DialogDescription>Impor SKU massal dari CSV/Excel dengan validasi & pratinjau.</DialogDescription></DialogHeader>
+          <a href="/contoh-import-produk.xlsx" download className="text-sm text-slate-900 underline inline-flex items-center gap-1 mb-1 w-fit" data-testid="download-template-btn"><DownloadSimple size={14} /> Unduh contoh file (.xlsx)</a>
           <BulkImport hint={"sku\tname\ttype\tminimum_stock\nF010\tMolten V10\tFutsal\t15"}
             fields={[{ key: "sku" }, { key: "name" }, { key: "type" }, { key: "minimum_stock" }]}
             previewColumns={[{ key: "sku", label: "SKU", mono: true }, { key: "name", label: "Nama" }, { key: "type", label: "Kategori" }, { key: "minimum_stock", label: "Min", num: true }]}
@@ -133,6 +145,15 @@ export default function Products() {
             onCommit={async (validRows) => { const res = await api.post("/products/import/commit", { rows: validRows }); toast.success(`${res.data.created} produk diimpor`); setImportOpen(false); refresh(); }} />
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={bulkDelOpen} onOpenChange={setBulkDelOpen}>
+        <AlertDialogContent data-testid="bulk-delete-dialog">
+          <AlertDialogHeader><AlertDialogTitle>Hapus {selected.length} produk?</AlertDialogTitle>
+            <AlertDialogDescription>Produk terpilih beserta relasi supplier, riwayat harga, dan mutasi stoknya akan dihapus permanen. Tindakan ini tidak bisa dibatalkan.</AlertDialogDescription></AlertDialogHeader>
+          <AlertDialogFooter><AlertDialogCancel className="rounded-sm">Batal</AlertDialogCancel>
+            <AlertDialogAction className="rounded-sm bg-[#B91C1C] hover:bg-[#991b1b]" onClick={(e) => { e.preventDefault(); doBulkDelete(); }} data-testid="confirm-bulk-delete-btn">Hapus Permanen</AlertDialogAction></AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={!!deactivateTarget} onOpenChange={(o) => !o && setDeactivateTarget(null)}>
         <AlertDialogContent data-testid="deactivate-dialog">

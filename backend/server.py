@@ -629,6 +629,36 @@ async def activate_product(pid: str, user: dict = Depends(require_admin)):
     await db.products.update_one({"id": pid}, {"$set": {"is_active": True, "updated_at": now_iso()}})
     return {"ok": True}
 
+@api.post("/products/bulk-delete")
+async def bulk_delete_products(body: dict, user: dict = Depends(require_admin)):
+    ids = body.get("ids", [])
+    for pid in ids:
+        await db.products.delete_one({"id": pid})
+        await db.product_suppliers.delete_many({"product_id": pid})
+        await db.price_history.delete_many({"product_id": pid})
+        await db.inventory_movements.delete_many({"product_id": pid})
+        await db.stock_in_items.delete_many({"product_id": pid})
+        await db.settlement_items.delete_many({"product_id": pid})
+        await db.stock_opname_items.delete_many({"product_id": pid})
+    await log_audit(user, "hapus_produk_massal", "product", "", f"{len(ids)} produk dihapus")
+    return {"deleted": len(ids)}
+
+@api.post("/suppliers/bulk-delete")
+async def bulk_delete_suppliers(body: dict, user: dict = Depends(require_admin)):
+    ids = body.get("ids", [])
+    for sid in ids:
+        await db.suppliers.delete_one({"id": sid})
+        await db.product_suppliers.delete_many({"supplier_id": sid})
+        await db.price_history.delete_many({"supplier_id": sid})
+        await db.payables.delete_many({"supplier_id": sid})
+        await db.payments.delete_many({"supplier_id": sid})
+        stls = await db.settlements.find({"supplier_id": sid}, {"_id": 0, "id": 1}).to_list(100000)
+        await db.settlements.delete_many({"supplier_id": sid})
+        for st in stls:
+            await db.settlement_items.delete_many({"settlement_id": st["id"]})
+    await log_audit(user, "hapus_supplier_massal", "supplier", "", f"{len(ids)} supplier dihapus")
+    return {"deleted": len(ids)}
+
 @api.get("/products/{pid}/suppliers")
 async def product_suppliers(pid: str, user: dict = Depends(get_current_user)):
     links = await db.product_suppliers.find({"product_id": pid, "is_active": True}, {"_id": 0}).to_list(1000)
