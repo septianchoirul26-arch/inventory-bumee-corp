@@ -17,8 +17,9 @@ export default function Payables() {
     <div>
       <PageHeader title="Hutang & Pembayaran" subtitle="Hutang supplier regular (stock in) & titip jual (opname/settlement)" />
       <Tabs defaultValue="list">
-        <TabsList className="rounded-sm"><TabsTrigger value="list" className="rounded-sm" data-testid="tab-list">Daftar Hutang</TabsTrigger><TabsTrigger value="bulk" className="rounded-sm" data-testid="tab-bulk-payment">Pembayaran Massal</TabsTrigger></TabsList>
+        <TabsList className="rounded-sm"><TabsTrigger value="list" className="rounded-sm" data-testid="tab-list">Daftar Hutang</TabsTrigger><TabsTrigger value="card" className="rounded-sm" data-testid="tab-debt-card">Kartu Utang Supplier</TabsTrigger><TabsTrigger value="bulk" className="rounded-sm" data-testid="tab-bulk-payment">Pembayaran Massal</TabsTrigger></TabsList>
         <TabsContent value="list" className="mt-4"><PayableList /></TabsContent>
+        <TabsContent value="card" className="mt-4"><DebtCard /></TabsContent>
         <TabsContent value="bulk" className="mt-4"><BulkPayment /></TabsContent>
       </Tabs>
     </div>
@@ -118,6 +119,52 @@ function PayableDetail({ id, onClose, onChanged }) {
         )}
       </DialogContent>
     </Dialog>
+  );
+}
+
+function DebtCard() {
+  const [suppliers, setSuppliers] = useState([]);
+  const [sid, setSid] = useState("");
+  const [data, setData] = useState(null);
+  useEffect(() => { api.get("/suppliers").then(({ data }) => setSuppliers(data)); }, []);
+  useEffect(() => { if (!sid) { setData(null); return; } api.get(`/suppliers/${sid}/debt-card`).then(({ data }) => setData(data)); }, [sid]);
+  return (
+    <div className="space-y-4">
+      <div className="max-w-sm"><Label>Supplier</Label>
+        <select value={sid} onChange={(e) => setSid(e.target.value)} className="w-full h-10 rounded-sm border border-slate-200 px-2 text-sm" data-testid="debtcard-supplier">
+          <option value="">Pilih supplier</option>{suppliers.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+        </select>
+      </div>
+      {!sid ? <EmptyState title="Pilih supplier" message="Pilih supplier untuk melihat kartu utang lengkap." icon={Money} /> : !data ? <Loading /> : (
+        <>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <KpiCard testid="dc-total" label="Total Hutang" value={formatRupiah(data.totals.initial)} icon={Money} />
+            <KpiCard testid="dc-paid" label="Terbayar" value={formatRupiah(data.totals.paid)} accent="text-[#15803D]" />
+            <KpiCard testid="dc-remaining" label="Sisa Hutang" value={formatRupiah(data.totals.remaining)} accent="text-[#B91C1C]" />
+            <KpiCard testid="dc-count" label="Jumlah Invoice" value={formatNumber(data.totals.invoice_count)} />
+          </div>
+          {data.payables.length === 0 ? <EmptyState title="Tidak ada hutang" message="Supplier ini belum memiliki catatan hutang." /> : (
+            <div className="space-y-3">
+              {data.payables.map((p) => (
+                <div key={p.id} className="border border-slate-200 rounded-sm overflow-hidden" data-testid={`debtcard-inv-${p.reference}`}>
+                  <div className="flex flex-wrap items-center justify-between gap-2 p-3 border-b border-slate-100 bg-slate-50">
+                    <div><span className="font-data font-semibold text-[13px]">{p.reference}</span><span className="text-xs text-slate-500 ml-2">{formatDate(p.date)} · {p.source_type === "settlement" ? "Settlement" : p.source_type === "consignment_opname" ? "Opname Titip Jual" : "Stock In"}</span></div>
+                    <div className="flex items-center gap-3 text-sm"><span className="font-data">Total {formatRupiah(p.amount_initial)}</span><span className="font-data text-[#15803D]">Bayar {formatRupiah(p.amount_paid)}</span><span className="font-data font-semibold text-[#B91C1C]">Sisa {formatRupiah(p.amount_remaining)}</span><DebtStatusBadge status={p.status} /></div>
+                  </div>
+                  <table className="ims-table w-full">
+                    <thead><tr><th>Tanggal Bayar</th><th className="text-right">Nominal</th><th>Catatan</th><th>Oleh</th></tr></thead>
+                    <tbody>
+                      {p.payments.length === 0 && <tr><td colSpan={4} className="text-center text-slate-400 py-2 text-xs">Belum ada pembayaran</td></tr>}
+                      {p.payments.map((pm) => <tr key={pm.id}><td>{formatDate(pm.payment_date)}</td><td className="text-right font-data font-semibold">{formatRupiah(pm.amount)}</td><td className="text-slate-500">{pm.note || "—"}</td><td className="text-slate-500">{pm.created_by_name}</td></tr>)}
+                    </tbody>
+                  </table>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+    </div>
   );
 }
 

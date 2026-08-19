@@ -1045,6 +1045,18 @@ async def list_opname_daily(page: int = 1, page_size: int = 20, user: dict = Dep
     return {"items": docs, "total": total, "page": page, "page_size": page_size}
 
 
+@api.get("/suppliers/{sid}/debt-card")
+async def supplier_debt_card(sid: str, user: dict = Depends(get_current_user)):
+    sup = await db.suppliers.find_one({"id": sid}, {"_id": 0})
+    if not sup:
+        raise HTTPException(status_code=404, detail="Supplier tidak ditemukan")
+    payables = await db.payables.find({"supplier_id": sid}, {"_id": 0}).sort([("date", 1), ("created_at", 1)]).to_list(100000)
+    for p in payables:
+        p["payments"] = await db.payments.find({"payable_id": p["id"]}, {"_id": 0}).sort("created_at", 1).to_list(1000)
+    totals = {"initial": sum(p["amount_initial"] for p in payables), "paid": sum(p["amount_paid"] for p in payables), "remaining": sum(p["amount_remaining"] for p in payables), "invoice_count": len(payables)}
+    return {"supplier": sup, "payables": payables, "totals": totals}
+
+
 @api.get("/payables-summary")
 async def payables_summary(user: dict = Depends(get_current_user)):
     rows = []
